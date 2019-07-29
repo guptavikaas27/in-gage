@@ -1,0 +1,352 @@
+<apex:page controller="SurveyController" cache="false" sidebar="false" showheader="false" standardStylesheets="false" docType="html-5.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="{!URLFOR($Resource.InGage_Resources, '/sites/jquery-1.12.3.min.js')}"></script>
+    <link rel="stylesheet" href="{!URLFOR($Resource.InGage_Resources, '/sites/bootstrap-4.0.0-dist/css/bootstrap.min.css')}"/>
+        <link rel="stylesheet" href="{!URLFOR($Resource.InGage_Resources, '/sites/bootstrap-4.0.0-dist/css/bootstrap-grid.min.css')}"/>
+            <script src="{!URLFOR($Resource.InGage_Resources, '/sites/bootstrap-4.0.0-dist/js/bootstrap.min.js')}"></script>
+    <style>
+        input[type=checkbox],
+        input[type=radio] {
+        transform: scale(1.5);
+        display: inline;
+        }
+        input[type=checkbox],
+        input[type=radio] {
+        display: inline;
+        }
+        .inputOption input[type=checkbox]+label:before,
+        .inputOption input[type=radio]+label:before {
+        content: "\00a0\00a0\00a0"
+        }
+        .inputOption.horizontal tr{
+        display: block;
+        }
+        .inputOption.horizontal tr td{
+        display: inline-block;
+        margin-right: 15px;
+        margin-left: 15px;
+        }
+        .errorM3{
+        padding: 5px 10px;
+        background: red;
+        color: white;
+        }
+        .errorM3 h4{
+        color: white;
+        display: inline-block;
+        margin-right: 14px;
+        }
+        .background-image{
+        background-position: center;
+        background-size: cover;
+        z-index: -100;
+        opacity: 0.2;
+        background-color: yellow;
+        background-image: url({!URLFOR($Resource.InGage_Resources, '/sites/images/in-gageSurvey.jpg')});
+        }
+        .square-box td{
+        width: 40px;
+        height: 35px;
+        border: 1px solid black;
+        text-align: center;
+        }
+        .square-box td input{
+        display: none;
+        }
+        .square-box td label{
+        color: #0062cc;
+        margin-bottom: 0;
+        width: 100%
+        }
+        
+        .slider {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 5px;
+        border-radius: 5px;
+        background: #d3d3d3;
+        outline: none;
+        opacity: 0.7;
+        -webkit-transition: .2s;
+        transition: opacity .2s;
+        }
+        .slider:hover {
+        opacity: 1;
+        }        
+        .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #0062cc;
+        cursor: pointer;
+        }        
+        .slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #0062cc;
+        cursor: pointer;
+        }
+    </style>
+    <script>
+    var response = {};
+    var isLiveChat = {!isLiveChat};
+    function storeResponse(questionId, value) {
+        response[questionId] = value;
+    }
+    function loadValue(childResponse) {
+        childResponse = JSON.parse(childResponse);
+        let input, output;
+        Object.keys(childResponse).forEach(function(id) {
+            value = childResponse[id];
+            input = document.getElementById(id);
+            output = document.getElementById(id+'-range');
+            if(input != null && input !== undefined) {
+                input.value = value;
+                output.innerHTML = value;
+            }
+        });
+    }
+    function nextQuestion() {
+        console.log(JSON.stringify(response));
+        nextQues(JSON.stringify(response));
+    }
+    let otherAnswer = '';
+    function checkForChatOptionOther(ele) {
+        //var el = document.querySelector("input[name$='selectOption']:checked");
+        var text = document.querySelector("label[for='"+ele.id+"']").innerHTML;
+        var id = ele.name;
+        id = id.replace("selectOption", "otherAnswer");
+        let textInput = document.getElementById(id);
+        if(text == 'Other') {
+            textInput.style.display = 'block';
+        } else {
+            textInput.style.display = 'none';
+        }
+    }
+    function checkForOptionOther() {
+        var el = document.querySelector("input[name$='selectOption']:checked");
+        var text = document.querySelector("label[for='"+el.id+"']").innerHTML;
+        let textInput = document.querySelector("[id$='otherAnswer']");
+        if(text == 'Other') {
+            textInput.style.display = 'block';
+            textInput.required = true;
+            textInput.value = otherAnswer;
+        } else {
+            document.querySelector("[id$='otherAnswer']").style.display = 'none';
+            textInput.required = false;
+            otherAnswer = textInput.value;
+            textInput.value = '';
+        }
+    }
+    function checkUnchecklabel(ele) {
+        var inputs = document.querySelectorAll('input[name="'+ ele.name +'"]');
+        inputs.forEach(function(input){
+            input.parentElement.style.backgroundColor = 'transparent';
+            document.querySelector('label[for="'+input.id+'"]').style.color = '#0062cc';
+        });
+    	ele.parentElement.style.backgroundColor = '#0062cc';
+        document.querySelector('label[for="'+ele.id+'"]').style.color = '#fff';
+    }
+    function colorCheckedOptionLabel() {
+        var el = document.querySelector("input[name$='selectOptionHorizontal']:checked");
+        document.querySelector("label[for='"+el.id+"']").style.color = '#fff';
+        el.parentElement.style.backgroundColor = '#0062cc';
+    }
+    </script>
+    <div class="fixed-top position-fixed w-100 h-100 background-image"></div>
+    <div class="slds-scope">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 justify-content-between">
+                    <apex:form >
+                        <apex:outputPanel rendered="{!!isLiveChat}">
+                            <apex:actionFunction name="nextQues" action="{!nextQuestion}" reRender="questionPanel">
+                                <apex:param name="childResponseString" value="" assignTo="{!childResponseString}"/>
+                            </apex:actionFunction>
+                            <apex:outputPanel id="questionPanel">
+                                <div class="d-flex align-items-center" style="min-height: 96vh; margin-top: 2vh">
+                                    <div class="w-100">
+                                        <apex:pageMessages ></apex:pageMessages>
+                                        <apex:outputPanel rendered="{!!isSubmit}">
+                                            <div class="text-center" style="font-size: 20px">
+                                                {!question.Question__c}
+                                            </div>
+                                            <div class="d-flex w-100 justify-content-center">
+                                                <div class="pt-2">
+                                                    <apex:outputPanel rendered="{!question.Is_Parent__c}">
+                                                        <div class="container-fluid mb-2">
+                                                            <apex:variable var="childCount" value="{!0}"/>
+                                                            <apex:repeat value="{!childQuestionsList}" var="childQuestion">
+                                                                <div class="row mb-2 d-block">
+                                                                    <div>{!childCount + 1}. {!childQuestion.Question__c}</div>
+                                                                    <div style="padding-left: 35px;padding-right: 35px">
+                                                                        <div>Select a value.({!childQuestion.Slider_Min_Range__c} - {!childQuestion.Slider_Max_Range__c})</div>
+                                                                        <input type="range" class="w-75 slider" min="{!childQuestion.Slider_Min_Range__c}" max="{!childQuestion.Slider_Max_Range__c}" id="{!childQuestion.Id}" value="0" onchange="storeResponse('{!childQuestion.Id}', this.value)" oninput="document.getElementById('{!childQuestion.Id + '-range'}').value = this.value" />
+                                                                        <output id="{!childQuestion.Id + '-range'}" for="{!childQuestion.Id}">0</output>
+                                                                    </div>
+                                                                </div>
+                                                                <apex:variable var="childCount" value="{!childCount+1}"/>
+                                                            </apex:repeat>
+                                                        </div>
+                                                        <div class="d-flex justify-content-center">
+                                                            <apex:commandButton styleClass="btn btn-primary mr-2 ml-2" value="PREV" action="{!previousQuestion}" rendered="{!isPrevious}" reRender="questionPanel" />
+                                                            <apex:outputPanel rendered="{!isNext}">
+                                                                <a href="javascript:void(0)" class="btn btn-primary mr-2 ml-2" onclick="nextQuestion()">NEXT</a>
+                                                            </apex:outputPanel>
+                                                        </div>
+                                                        <script>
+                                                        loadValue('{!childResponseString}');
+                                                        </script>
+                                                    </apex:outputPanel>
+                                                    <apex:outputPanel rendered="{!!question.Is_Parent__c}">
+                                                        <div class="container-fluid mb-2">
+                                                            <div class="row justify-content-center">
+                                                                <div class="">
+                                                                    <apex:outputPanel rendered="{!NPS_SQUAREBOX == question.Type__c}">
+                                                                        <span class="square-box">
+                                                                            <apex:selectRadio id="selectOptionHorizontal" value="{!selectedAnswerId}" onclick="checkUnchecklabel(this);" layout="lineDirection">
+                                                                                <apex:selectOptions value="{!surveyOptions}"/>
+                                                                            </apex:selectRadio>
+                                                                        </span>
+                                                                        <script>
+                                                                        colorCheckedOptionLabel();
+                                                                        </script>
+                                                                    </apex:outputPanel>
+                                                                    <apex:outputPanel rendered="{!SINGLE_OPTION_VERTICAL == question.Type__c || SINGLE_OPTION_HORIZONTAL == question.Type__c}">
+                                                                        <span class="inputOption {!if(SINGLE_OPTION_HORIZONTAL = question.Type__c, 'horizontal', '')}">
+                                                                            <apex:selectRadio id="selectOption" onchange="checkForOptionOther()" value="{!selectedAnswerId}" layout="{!if(SINGLE_OPTION_VERTICAL = question.Type__c, 'pageDirection', 'lineDirection')}">
+                                                                                <apex:selectOptions value="{!surveyOptions}"/>
+                                                                            </apex:selectRadio>
+                                                                        </span>
+                                                                        <apex:inputTextarea id="otherAnswer" value="{!responsedAnswer}" style="display: none;"/>
+                                                                        <script>
+                                                                        otherAnswer = '{!responsedAnswer}';
+                                                                        checkForOptionOther();
+                                                                        </script>
+                                                                    </apex:outputPanel>
+                                                                    <apex:outputPanel rendered="{!MULTI_OPTION == question.Type__c}">
+                                                                        <span class="inputOption">
+                                                                            <apex:selectCheckboxes value="{!selectedAnswerIds}" layout="pageDirection">
+                                                                                <apex:selectOptions value="{!surveyOptions}" />
+                                                                            </apex:selectCheckboxes>
+                                                                        </span>
+                                                                    </apex:outputPanel>
+                                                                    <apex:outputPanel rendered="{!TEXT_OPTION == question.Type__c}">
+                                                                        <apex:inputTextarea value="{!responsedAnswer}"/>
+                                                                    </apex:outputPanel>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="d-flex justify-content-center">
+                                                            <apex:commandButton styleClass="btn btn-primary mr-2 ml-2" value="PREV" action="{!previousQuestion}" rendered="{!isPrevious}" reRender="questionPanel" />
+                                                            <apex:commandButton styleClass="btn btn-primary mr-2 ml-2" value="NEXT" action="{!nextQuestion}" rendered="{!isNext}" reRender="questionPanel" />
+                                                        </div>
+                                                    </apex:outputPanel>
+                                                </div>
+                                            </div>
+                                            <div class="w-100 d-flex justify-content-center mt-2">
+                                                <apex:commandButton styleClass="btn btn-primary pl-5 pr-5" value="Submit" action="{!submitSurvey}" rendered="{!!isNext}" reRender="questionPanel" />	
+                                            </div>
+                                        </apex:outputPanel>
+                                        <apex:outputPanel rendered="{!isSubmit}">
+                                            <div class="d-block w-100 text-center">
+                                                {!survey.Submit_Response__c}
+                                            </div>
+                                        </apex:outputPanel>
+                                    </div>
+                                </div>
+                            </apex:outputPanel>
+                        </apex:outputPanel>
+                        <apex:outputPanel rendered="{!isLiveChat}">
+                            <apex:actionFunction name="submit" action="{!submitChatSurvey}" reRender="questionPanel1">
+                                <apex:param name="childResponseString" value="" assignTo="{!childResponseString}"/>
+                            </apex:actionFunction>
+                            <apex:outputPanel id="questionPanel1">
+                                <apex:pageMessages ></apex:pageMessages>
+                                <apex:outputPanel rendered="{!!isSubmit}">
+                                    <apex:variable var="quesCount" value="{!0}"/>
+                                    <apex:repeat value="{!listOfResponseWrapper}" var="wrap">
+                                        <div class="">
+                                            {!quesCount + 1}. {!wrap.question.Question__c}
+                                        </div>
+                                        <div class="d-flex w-100 justify-content-start">
+                                            <div class="pt-2 w-100">
+                                                <apex:outputPanel rendered="{!wrap.question.Is_Parent__c}">
+                                                    <div class="container-fluid mb-4">
+                                                        <apex:variable var="childCount" value="{!0}"/>
+                                                        <apex:repeat value="{!wrap.childResponseWrapper}" var="childQuestion">
+                                                            <div class="row mb-2 align-items-center">
+                                                                <div class="col-md-12">{!quesCount + 1}.{!childCount + 1}. {!childQuestion.question.Question__c}</div>
+                                                                <div class="col-md-4" style="padding-left: 45px">
+                                                                    <div>Select a value.({!childQuestion.question.Slider_Min_Range__c} - {!childQuestion.question.Slider_Max_Range__c})</div>
+                                                                    <input type="range" class="w-75 slider" min="{!childQuestion.question.Slider_Min_Range__c}" max="{!childQuestion.question.Slider_Max_Range__c}" id="{!childQuestion.question.Id}" value="0" onchange="storeResponse('{!childQuestion.question.Id}', this.value)" oninput="document.getElementById('{!childQuestion.question.Id + '-range'}').value = this.value" />
+                                                                    <output id="{!childQuestion.question.Id + '-range'}" for="{!childQuestion.question.Id}">0</output>
+                                                                </div>
+                                                            </div>
+                                                            <apex:variable var="childCount" value="{!childCount+1}"/>
+                                                        </apex:repeat>
+                                                    </div>
+                                                    <script>
+                                                    //loadValue('{!childResponseString}');
+                                                    </script>
+                                                </apex:outputPanel>
+                                                <apex:outputPanel rendered="{!!wrap.question.Is_Parent__c}">
+                                                    <div class="container-fluid mb-4">
+                                                        <div class="row">
+                                                            <div class="col-12">
+                                                                <apex:outputPanel rendered="{!NPS_SQUAREBOX == wrap.question.Type__c}">
+                                                                    <span class="square-box">
+                                                                        <apex:selectRadio id="selectOptionHorizontal" value="{!wrap.optionId}" onclick="checkUnchecklabel(this);" layout="lineDirection">
+                                                                            <apex:selectOptions value="{!wrap.surveyOptions}"/>
+                                                                        </apex:selectRadio>
+                                                                    </span>
+                                                                    <script>
+                                                                    colorCheckedOptionLabel();
+                                                                    </script>
+                                                                </apex:outputPanel>
+                                                                <apex:outputPanel rendered="{!SINGLE_OPTION_VERTICAL == wrap.question.Type__c || SINGLE_OPTION_HORIZONTAL == wrap.question.Type__c}">
+                                                                    <span class="inputOption {!if(SINGLE_OPTION_HORIZONTAL = wrap.question.Type__c, 'horizontal', '')}">
+                                                                        <apex:selectRadio id="selectOption" onchange="checkForChatOptionOther(this)" value="{!wrap.optionId}" layout="{!if(SINGLE_OPTION_VERTICAL = wrap.question.Type__c, 'pageDirection', 'lineDirection')}">
+                                                                            <apex:selectOptions value="{!wrap.surveyOptions}"/>
+                                                                        </apex:selectRadio>
+                                                                    </span>
+                                                                    <apex:inputTextarea id="otherAnswer" value="{!wrap.response}" style="display: none;"/>
+                                                                </apex:outputPanel>
+                                                                <apex:outputPanel rendered="{!MULTI_OPTION == wrap.question.Type__c}">
+                                                                    <span class="inputOption">
+                                                                        <apex:selectCheckboxes value="{!wrap.optionIds}" layout="pageDirection">
+                                                                            <apex:selectOptions value="{!wrap.surveyOptions}" />
+                                                                        </apex:selectCheckboxes>
+                                                                    </span>
+                                                                </apex:outputPanel>
+                                                                <apex:outputPanel rendered="{!TEXT_OPTION == wrap.question.Type__c}">
+                                                                    <apex:inputTextarea value="{!wrap.response}"/>
+                                                                </apex:outputPanel>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </apex:outputPanel>
+                                            </div>
+                                        </div>
+                                        <apex:variable var="quesCount" value="{!quesCount + 1}"/>
+                                    </apex:repeat>
+                                    <div class="w-100 d-flex justify-content-center mt-2">
+                                        <a class="btn btn-primary pl-5 pr-5" href="javascript:void(0)" onclick="submit(JSON.stringify(response))">Submit</a>	
+                                    </div>
+                                </apex:outputPanel>
+                                <apex:outputPanel rendered="{!isSubmit}">
+                                    <div class="d-block w-100 text-center mt-5 pt-5">
+                                        {!survey.Submit_Response__c}
+                                    </div>
+                                </apex:outputPanel>
+                            </apex:outputPanel>
+                        </apex:outputPanel>
+                    </apex:form>
+                </div>
+            </div>
+        </div>
+    </div>
+</apex:page>
